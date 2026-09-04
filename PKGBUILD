@@ -1,7 +1,7 @@
 # Contributor: Hy Goldsher <hyness-at-freshlegacycode-dot-org>
 pkgname=retrofe
 pkgver=0.10.31
-pkgrel=1
+pkgrel=2
 pkgdesc="A cross-platform frontend designed for MAME cabinets/game centers/etc. with a focus on simplicity and customization"
 arch=('i686' 'x86_64')
 url="http://retrofe.nl"

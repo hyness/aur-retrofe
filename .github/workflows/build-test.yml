@@ -1,0 +1,65 @@
+name: Build and install test
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: makepkg build
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    timeout-minutes: 45
+    steps:
+      - name: Install build dependencies
+        run: pacman -Syu --noconfirm --needed git sudo
+
+      - uses: actions/checkout@v4
+
+      - name: Build package as non-root user
+        run: |
+          useradd -m builder
+          chown -R builder:builder .
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+          su builder -c 'makepkg -s --noconfirm --skippgpcheck'
+
+      - name: Verify a package artifact was produced
+        run: ls -la *.pkg.tar.*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg
+          path: '*.pkg.tar.*'
+          retention-days: 1
+
+  install:
+    name: Install on a clean system
+    needs: build
+    runs-on: ubuntu-latest
+    container: archlinux:base
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pkg
+
+      - name: Update system and install the built package
+        run: |
+          pacman -Syu --noconfirm
+          # No --nodeps: this is the point of the job. pacman must resolve
+          # every declared `depends` entry against a clean system with
+          # nothing pre-installed beyond `base`.
+          #
+          # pacman -U itself returns 0 even when a post-install scriptlet
+          # (.install) fails, so also fail this step if pacman logged an
+          # "error:" line - that's how a broken .install script shows up.
+          PKG=$(ls *.pkg.tar.*)
+          pacman -U --noconfirm "$PKG" 2>&1 | tee /tmp/pacman.log
+          ! grep -q '^error:' /tmp/pacman.log
+
+      - name: Verify installed files are present
+        run: |
+          test -L /usr/bin/retrofe
+          test -x /opt/retrofe/retrofe
+          test -f /usr/share/applications/retrofe.desktop
+          test -f /usr/share/pixmaps/retrofe.png

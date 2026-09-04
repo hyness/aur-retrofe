@@ -19,7 +19,8 @@ _gitproject=RetroFE
 
 build() {
 	cd $_gitproject
-	cmake RetroFE/Source -BRetroFE/Build -DVERSION_MAJOR=0 -DVERSION_MINOR=0 -DVERSION_BUILD=0
+	cmake RetroFE/Source -BRetroFE/Build -DVERSION_MAJOR=0 -DVERSION_MINOR=0 -DVERSION_BUILD=0 \
+		-DCMAKE_POLICY_VERSION_MINIMUM=3.5
 	cmake --build RetroFE/Build
 	python Scripts/Package.py --os=linux --build=full
 }
